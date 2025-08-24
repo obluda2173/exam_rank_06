@@ -1,0 +1,71 @@
+#+title: Exam Rank 06
+
+* General idea:
+mini_serv is a small TCP chat server server on adress 127.0.0.1. It:
+- Listens on port given in av
+- Accepts many clients
+- Assign an incrementing id to new clients
+- Broadcasts arrival and leave messages to all clients in given format
+- When client sends lines (e.g. "Hello\nMy name is Anton!\n"), it rebroadcasts each line to each client prefixing "client %d:"
+- Uses =select()= to wait for sockets ready to read and to send only on sockets =select()= says are writable
+- Keeps per-client small in-memory buffers to collect partial lines until a '\n' appears
+- Closes and cleanes fds properly with no leaks (since not allocated)
+
+* mini_serv structure:
+- Includes and types
+- Globals / per client storage
+- Helpers (e.g. fatal())
+- =main()=
+  - Argument check
+  - Create + bind + listen on socket (server)
+  - Initialise client table
+  - =select()= main loop
+    - Accept new clients
+    - Read from existing clients
+    - Assemble lines and broadcast them
+    - Announce arrivals / departures
+
+* Q/A
+** What is select and how it works?
+select() allows a program to monitor multiple file descriptors, waiting until one or more of the file descriptors become "ready" for some i/o operations
+
+*** Usage:
+#+begin_src c
+int select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout);
+/*
+    nfds        -   highest fd number + 1
+    readfds     -   fd_set structure which is a set of file descriptors to monitor for reading
+    writefds    -   fd_set structure for monitoring file descriptors for writing
+    others are not essential
+*/
+#+end_src
+
+The funtion returns the number of fds that are ready for i/o
+
+** What is fd_set?
+A structure type that can represent a set of file desriptors. Number of file descriptors in a set is value of FD_SETSIZE
+
+** How to work with fd_sets?
+The contents of a file descriptor set can be manipulated using the following macros:
+
+ - FD_ZERO()
+   Clears all file descriptors from the set
+
+ - FD_SET()
+   Adds the file descriptor to the set
+
+ - FD_CLEAR()
+   Removes file descriptor from the set
+
+ - FD_ISSET()
+   1. select() modifies the contents of the sets
+   2. FD_ISSET() macro can be used to test if a file descriptor is still present in a set
+
+** What is accept() and how it works?
+accept() is a system call that is used to accept the incoming connection request on lisgening socket
+
+#+begin_src c
+int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
+#+end_src
+
+accept() extracts the first connection request from the queue of pending connections on a listening socket, creates a new socket for that connection, and returns a new file descriptor for the connected socket
