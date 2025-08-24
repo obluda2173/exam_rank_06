@@ -15,45 +15,50 @@ typedef struct s_client {
 
 t_client clients[FD_SETSIZE];
 
+// silly function for serious errors
 void fatal() {
     write(2, "Fatal error\n", strlen("Fatal error\n"));
     exit(1);
 }
 
 int main(int ac, char **av) {
-    int sockfd, cfd, maxfd;
+    int sockfd, cfd, maxfd; // socket file descripor, connection file desriptor and highest file desriptor for optimisation
     struct sockaddr_in serv;
     socklen_t slen = sizeof(serv);
     fd_set readset, writeset, curset;
 
+    // simple ac check
     if (ac != 2) {
         write(2, "Wrong number of arguments\n", strlen("Wrong number of arguments\n"));
         exit(1);
     }
 
-   sockfd = socket(AF_INET, SOCK_STREAM, 0);
-   if (sockfd < 0) {
-       fatal();
-   }
+    // creation of the TCP socket
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd < 0) {
+        fatal();
+    }
 
-   memset(&serv, 0, slen);
-   serv.sin_family = AF_INET;
-   serv.sin_addr.s_addr = htonl(2130706433);
-   serv.sin_port = htons(atoi(av[1]));
+    // initialisation of the server
+    memset(&serv, 0, slen);
+    serv.sin_family = AF_INET;
+    serv.sin_addr.s_addr = htonl(2130706433);
+    serv.sin_port = htons(atoi(av[1]));
 
 
-   if ((bind(sockfd, (const struct sockaddr *)&serv, slen)) < 0) {
-       fatal();
-   }
-   if (listen(sockfd, 10) < 0) {
-       fatal();
-   }
+    // binding socket with server adress
+    if ((bind(sockfd, (const struct sockaddr *)&serv, slen)) < 0) {
+        fatal();
+    }
+    if (listen(sockfd, 10) < 0) {
+        fatal();
+    }
 
-   // init clients
-   for (int i = 0; i < FD_SETSIZE; i++) {
-       clients[i].fd = -1;
-       clients[i].len = 0;
-   }
+    // init clients
+    for (int i = 0; i < FD_SETSIZE; i++) {
+        clients[i].fd = -1;
+        clients[i].len = 0;
+    }
 
    FD_ZERO(&curset);
    FD_SET(sockfd, &curset);
